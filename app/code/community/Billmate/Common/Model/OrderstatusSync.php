@@ -21,11 +21,13 @@ class Billmate_Common_Model_OrderstatusSync
             foreach(array('billmateinvoice','billmatebankpay','billmatecardpay','billmatepartpayment') as $payment){
                 if(!in_array(Mage::getStoreConfig('payment/'.$payment.'/order_status'),$statusesToCheck)){
                     array_push($statusesToCheck,Mage::getStoreConfig('payment/'.$payment.'/order_status'));
+                    if($payment == 'billmateinvoice' || $payment == 'billmatepartpayment'){
+                        array_push($statusesToCheck,Mage::getStoreConfig('payment/'.$payment.'/pending_status'));
+
+                    }
                 }
             }
-            if(Mage::getStoreConfig('billmate/fraud_check/pendingstatus')){
-                array_push($statusesToCheck,Mage::getStoreConfig('billmate/fraud_check/pendingstatus'));
-            }
+
             array_push($statusesToCheck,'pending_payment');
 
             $orders = Mage::getModel('sales/order')->getCollection()->addAttributeToSelect('*')->addFieldToFilter('status', array('in' => $statusesToCheck));
@@ -58,8 +60,8 @@ class Billmate_Common_Model_OrderstatusSync
                         }
                         break;
                     case 'pending':
-                        if($order->getStatus() != Mage::getStoreConfig('billmate/fraud_check/pendingstatus') && $order->getStatus() != 'payment_review') {
-                            $order->addStatusHistoryComment(Mage::helper('billmatecommon')->__('Order is pending. (Data from Billmate API, API log ID %s)',$logid),(Mage::getStoreConfig('billmate/fraud_check/pendingstatus')) ? Mage::getStoreConfig('billmate/fraud_check/pendingstatus') : 'payment_review');
+                        if($order->getStatus() != Mage::getStoreConfig('payment/'.$paymentCode.'/pending_status') && $order->getStatus() != 'payment_review') {
+                            $order->addStatusHistoryComment(Mage::helper('billmatecommon')->__('Order is pending. (Data from Billmate API, API log ID %s)',$logid),(Mage::getStoreConfig('payment/'.$paymentCode.'/pending_status')) ? Mage::getStoreConfig('payment/'.$paymentCode.'/pending_status') : 'payment_review');
                             $order->save();
                         }
                         break;
