@@ -17,13 +17,15 @@ class Billmate_Common_Model_OrderstatusSync
                 $statusesToCheck = explode(',', Mage::getStoreConfig('billmate/fraud_check/checkstatus'));
             }
             array_push($statusesToCheck,'payment_review');
+            $stores = Mage::app()->getStores();
+            foreach ($stores as $key => $value) {
+                foreach (array('billmateinvoice', 'billmatebankpay', 'billmatecardpay', 'billmatepartpayment') as $payment) {
+                    if (!in_array(Mage::getStoreConfig('payment/' . $payment . '/order_status',$key), $statusesToCheck)) {
+                        array_push($statusesToCheck, Mage::getStoreConfig('payment/' . $payment . '/order_status',$key));
+                        if ($payment == 'billmateinvoice' || $payment == 'billmatepartpayment') {
+                            array_push($statusesToCheck, Mage::getStoreConfig('payment/' . $payment . '/pending_status',$key));
 
-            foreach(array('billmateinvoice','billmatebankpay','billmatecardpay','billmatepartpayment') as $payment){
-                if(!in_array(Mage::getStoreConfig('payment/'.$payment.'/order_status'),$statusesToCheck)){
-                    array_push($statusesToCheck,Mage::getStoreConfig('payment/'.$payment.'/order_status'));
-                    if($payment == 'billmateinvoice' || $payment == 'billmatepartpayment'){
-                        array_push($statusesToCheck,Mage::getStoreConfig('payment/'.$payment.'/pending_status'));
-
+                        }
                     }
                 }
             }
@@ -32,6 +34,7 @@ class Billmate_Common_Model_OrderstatusSync
 
             $orders = Mage::getModel('sales/order')->getCollection()->addAttributeToSelect('*')->addFieldToFilter('status', array('in' => $statusesToCheck));
             foreach ($orders as $order) {
+                $storeId = $order->getStoreId();
                 $payment = $order->getPayment();
 
                 $paymentCode = $payment->getMethodInstance()->getCode();
@@ -45,7 +48,7 @@ class Billmate_Common_Model_OrderstatusSync
                     'number' => $invoiceId
                 );
 
-                $billmate = Mage::helper('billmatecommon')->getBillmate(Mage::getStoreConfig('payment/'.$paymentCode.'/test_mode'));
+                $billmate = Mage::helper('billmatecommon')->getBillmate(Mage::getStoreConfig('payment/'.$paymentCode.'/test_mode',$storeId));
 
                 $result = $billmate->getPaymentinfo($values);
                 if(isset($result['code'])){
@@ -54,20 +57,20 @@ class Billmate_Common_Model_OrderstatusSync
                 $logid = $result['apiLogsid'];
                 switch (strtolower($result['PaymentData']['status'])) {
                     case 'created':
-                        if($order->getStatus() != Mage::getStoreConfig('payment/'.$paymentCode.'/order_status')) {
-                            $order->addStatusHistoryComment(Mage::helper('billmatecommon')->__('Order is created and approved. (Data from Billmate API, API log ID %s)',$logid), Mage::getStoreConfig('payment/' . $paymentCode . '/order_status'));
+                        if($order->getStatus() != Mage::getStoreConfig('payment/'.$paymentCode.'/order_status',$storeId)) {
+                            $order->addStatusHistoryComment(Mage::helper('billmatecommon')->__('Order is created and approved. (Data from Billmate API, API log ID %s)',$logid), Mage::getStoreConfig('payment/' . $paymentCode . '/order_status',$storeId));
                             $order->save();
                         }
                         break;
                     case 'pending':
-                        if($order->getStatus() != Mage::getStoreConfig('payment/'.$paymentCode.'/pending_status') && $order->getStatus() != 'payment_review') {
-                            $order->addStatusHistoryComment(Mage::helper('billmatecommon')->__('Order is pending. (Data from Billmate API, API log ID %s)',$logid),(Mage::getStoreConfig('payment/'.$paymentCode.'/pending_status')) ? Mage::getStoreConfig('payment/'.$paymentCode.'/pending_status') : 'payment_review');
+                        if($order->getStatus() != Mage::getStoreConfig('payment/'.$paymentCode.'/pending_status',$storeId) && $order->getStatus() != 'payment_review') {
+                            $order->addStatusHistoryComment(Mage::helper('billmatecommon')->__('Order is pending. (Data from Billmate API, API log ID %s)',$logid),(Mage::getStoreConfig('payment/'.$paymentCode.'/pending_status',$storeId)) ? Mage::getStoreConfig('payment/'.$paymentCode.'/pending_status',$storeId) : 'payment_review');
                             $order->save();
                         }
                         break;
                     case 'denied':
-                        if($order->getStatus() != Mage::getStoreConfig('billmate/fraud_check/denied_status') && $order->getStatus() != 'canceled') {
-                            $order->addStatusHistoryComment(Mage::helper('billmatecommon')->__('Order is denied. (Data from Billmate API, API log id %s)',$logid), (Mage::getStoreConfig('billmate/fraud_check/denied_status')) ? Mage::getStoreConfig('billmate/fraud_check/deniedstatus') : 'canceled');
+                        if($order->getStatus() != Mage::getStoreConfig('billmate/fraud_check/denied_status',$storeId) && $order->getStatus() != 'canceled') {
+                            $order->addStatusHistoryComment(Mage::helper('billmatecommon')->__('Order is denied. (Data from Billmate API, API log id %s)',$logid), (Mage::getStoreConfig('billmate/fraud_check/denied_status',$storeId)) ? Mage::getStoreConfig('billmate/fraud_check/deniedstatus',$storeId) : 'canceled');
                             $order->save();
                         }
                         break;
@@ -75,7 +78,7 @@ class Billmate_Common_Model_OrderstatusSync
                     case 'paid':
                     case 'partpayment':
                     case 'handling':
-                        if(Mage::getStoreConfig('billmate/fraud_check/createinvoice')){
+                        if(Mage::getStoreConfig('billmate/fraud_check/createinvoice',$storeId)){
                             if($order->canInvoice()){
                                 $invoice = Mage::getModel('sales/service_order',$order)->prepareInvoice();
                                 if($invoice->getTotalQty()){
@@ -86,15 +89,15 @@ class Billmate_Common_Model_OrderstatusSync
                                 }
                             }
                         } else {
-                            if($order->getStatus() != Mage::getStoreConfig('billmate/fraud_check/activatedstatus') && $order->getStatus() != 'processing') {
-                                $order->addStatusHistoryComment(Mage::helper('billmatecommon')->__('Order is paid. (Data from Billmate API, API log ID %s)',$logid), (Mage::getStoreConfig('billmate/fraud_check/activatedstatus')) ? Mage::getStoreConfig('billmate/fraud_check/activatedstatus') : 'proceccing');
+                            if($order->getStatus() != Mage::getStoreConfig('billmate/fraud_check/activatedstatus',$storeId) && $order->getStatus() != 'processing') {
+                                $order->addStatusHistoryComment(Mage::helper('billmatecommon')->__('Order is paid. (Data from Billmate API, API log ID %s)',$logid), (Mage::getStoreConfig('billmate/fraud_check/activatedstatus',$storeId)) ? Mage::getStoreConfig('billmate/fraud_check/activatedstatus',$storeId) : 'proceccing');
                                 $order->save();
                             }
                         }
                         break;
                     case 'cancelled':
-                        if($order->getStatus() != Mage::getStoreConfig('billmate/fraud_check/cancelstatus') && $order->getStatus() != 'canceled') {
-                            $order->addStatusHistoryComment(Mage::helper('billmatecommon')->__('Order is canceled. (Data from Billmate API, API log ID %s)',$logid), (Mage::getStoreConfig('billmate/fraud_check/cancelstatus')) ? Mage::getStoreConfig('billmate/fraud_check/cancelstatus') : 'cancelled');
+                        if($order->getStatus() != Mage::getStoreConfig('billmate/fraud_check/cancelstatus',$storeId) && $order->getStatus() != 'canceled') {
+                            $order->addStatusHistoryComment(Mage::helper('billmatecommon')->__('Order is canceled. (Data from Billmate API, API log ID %s)',$logid), (Mage::getStoreConfig('billmate/fraud_check/cancelstatus',$storeId)) ? Mage::getStoreConfig('billmate/fraud_check/cancelstatus',$storeId) : 'cancelled');
                             $order->save();
                         }
                         break; 
