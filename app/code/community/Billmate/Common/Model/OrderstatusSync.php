@@ -47,6 +47,8 @@ class Billmate_Common_Model_OrderstatusSync
                 $values = array(
                     'number' => $invoiceId
                 );
+                if(!$invoiceId)
+                    continue;
 
                 $billmate = Mage::helper('billmatecommon')->getBillmate(Mage::getStoreConfig('payment/'.$paymentCode.'/test_mode',$storeId));
 
