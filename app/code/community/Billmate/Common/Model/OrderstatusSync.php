@@ -72,7 +72,7 @@ class Billmate_Common_Model_OrderstatusSync
                         break;
                     case 'denied':
                         if($order->getStatus() != Mage::getStoreConfig('billmate/fraud_check/denied_status',$storeId) && $order->getStatus() != 'canceled') {
-                            $order->addStatusHistoryComment(Mage::helper('billmatecommon')->__('Order is denied. (Data from Billmate API, API log id %s)',$logid), (Mage::getStoreConfig('billmate/fraud_check/denied_status',$storeId)) ? Mage::getStoreConfig('billmate/fraud_check/deniedstatus',$storeId) : 'canceled');
+                            $order->addStatusHistoryComment(Mage::helper('billmatecommon')->__('Order is denied. (Data from Billmate API, API log id %s)',$logid), (Mage::getStoreConfig('billmate/fraud_check/deniedstatus',$storeId)) ? Mage::getStoreConfig('billmate/fraud_check/deniedstatus',$storeId) : 'canceled');
                             $order->save();
                         }
                         break;
