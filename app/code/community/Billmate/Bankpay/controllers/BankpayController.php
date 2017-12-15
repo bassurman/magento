@@ -280,10 +280,10 @@ class Billmate_Bankpay_BankpayController extends Mage_Core_Controller_Front_Acti
     
     public function acceptAction()
     {
-        $quoteId = Mage::getSingleton('checkout/session')->getBillmateQuoteId();
+        $quoteId = $this->getRequest()->getParam('billmate_quote_id');
 
         /** @var  $quote Mage_Sales_Model_Quote */
-        $quote = Mage::getSingleton('checkout/session')->getQuote();
+        $quote = Mage::getModel('sales/quote')->load($quoteId);
 
         $k = Mage::helper('billmatebankpay')->getBillmate(true, false);
 
