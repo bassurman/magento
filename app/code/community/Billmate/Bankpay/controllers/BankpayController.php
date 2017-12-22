@@ -248,11 +248,7 @@ class Billmate_Bankpay_BankpayController extends Mage_Core_Controller_Front_Acti
                         $this->sendNewOrderMail($order);
 
                     } else {
-                        $order->addStatusHistoryComment(Mage::helper('payment')->__('Order processing completed' . '<br/>Billmate status: ' . $data['status'] . '<br/>' . 'Transaction ID: ' . $data['number']));
-                        $order->setState('new', 'pending_payment', '', false);
-                        $order->setCustomerIsGuest(($quote->getCustomerId() == NULL) ? 1 : 0);
-
-                        $order->save();
+                        
 
                         $this->_redirect('checkout/onepage/success',array('_secure' => true));
                         return;
