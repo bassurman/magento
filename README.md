@@ -64,6 +64,9 @@ Copy the code below for the size that fits your needs.
 
 ## Changelog
 
+### 3.0.9 (201X-XX-XX)
+* Fix - Fixed a bug which caused some customers to not receive order confirmation emails under rare circumstances.
+
 ### 3.0.8 (2017-07-24)
 * Fix - Sometimes orderstatus gets blank.
 
