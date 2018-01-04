@@ -243,7 +243,6 @@ class Billmate_Cardpay_CardpayController extends Mage_Core_Controller_Front_Acti
                         $order->setState('new', Mage::getStoreConfig('payment/billmatecardpay/order_status'), '', false);
                         $order->save();
                         $this->addTransaction($order, $data);
-                        $this->sendNewOrderMail($order);
                     } else {
                         $order->addStatusHistoryComment(Mage::helper('payment')->__('Order processing completed' . '<br/>Billmate status: ' . $data['status'] . '<br/>' . 'Transaction ID: ' . $data['number']));
                         $order->setState('new',  Mage::getStoreConfig('payment/billmatecardpay/order_status'), '', false);
@@ -251,6 +250,10 @@ class Billmate_Cardpay_CardpayController extends Mage_Core_Controller_Front_Acti
 
                         $this->_redirect('checkout/onepage/success',array('_secure' => true));
                         return;
+                    }
+
+                    if (!$order->getEmailSent()) {
+                        $this->sendNewOrderMail($order);
                     }
                 }
                 else {
