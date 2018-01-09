@@ -245,13 +245,17 @@ class Billmate_Bankpay_BankpayController extends Mage_Core_Controller_Front_Acti
                         $order->save();
                         $this->addTransaction($order,$data);
 
+                        if (!$order->getEmailSent()) {
+                            $this->sendNewOrderMail($order);
+                        }
+
                     } else {
+                        if (!$order->getEmailSent()) {
+                            $this->sendNewOrderMail($order);
+                        }
+
                         $this->_redirect('checkout/onepage/success',array('_secure' => true));
                         return;
-                    }
-
-                    if (!$order->getEmailSent()) {
-                        $this->sendNewOrderMail($order);
                     }
                 }
                 else {
