@@ -182,7 +182,13 @@ class Billmate_Common_Model_Checkout extends Varien_Object
         $storeLanguage = Mage::app()->getLocale()->getLocaleCode();
         $countryCode = Mage::getStoreConfig('general/country/default',Mage::app()->getStore());
         $storeCountryIso2 = Mage::getModel('directory/country')->loadByCode($countryCode)->getIso2Code();
-        $orderValues = $billmate->getCheckout(array('PaymentData' => array('hash' => Mage::getSingleton('checkout/session')->getBillmateHash())));
+        $_orderValues = $billmate->getCheckout(array('PaymentData' => array('hash' => Mage::getSingleton('checkout/session')->getBillmateHash())));
+
+        $orderValues = array(
+            'PaymentData' => array(
+                'number' => $_orderValues['PaymentData']['number']
+            )
+        );
 
         /*$orderValues['CheckoutData'] = array(
             'windowmode' => 'iframe',
@@ -286,11 +292,6 @@ class Billmate_Common_Model_Checkout extends Varien_Object
                 );
                 $totalValue += $Shipping->getShippingAmount() * 100;
                 $totalTax += ($Shipping->getShippingAmount() * 100) * ($rate / 100);
-            } else {
-                $orderValues['Cart']['Shipping'] = array(
-                    'withouttax' => 0,
-                    'taxrate' => (int)$rate
-                );
             }
         }
         $round = round($quote->getGrandTotal() * 100) - round($totalValue +  $totalTax);
