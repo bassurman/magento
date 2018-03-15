@@ -64,18 +64,13 @@ if (($_shippingRateGroups = $this->getEstimateRates())): ?>
 
     var billmateCheckoutShippingTimer;
     var selectedShippingMethod = null;
-    if($$('[name="estimate_method"]:checked').length == 0){
-        jQuery('[name="estimate_method"]').last().click();
-    } else {
-        selectedShippingMethod = $$('[name="estimate_method"]:checked')[0].value;
-    }
+
     $$('[name="estimate_method"].radio').each(function(el){
         el.observe('click',function(e){
-            console.log('clicked radio');
+
             clearTimeout(billmateCheckoutShippingTimer);
             billmateCheckoutShippingTimer = setTimeout(function() {
                 if($$('[name="estimate_method"]:checked')[0].value != selectedShippingMethod) {
-                    console.log('different method');
                     selectedShippingMethod = $$('[name="estimate_method"]:checked')[0].value;
                     updateShippingMethod($$('[name="estimate_method"]:checked')[0].value);
                 }
@@ -97,6 +92,15 @@ if (($_shippingRateGroups = $this->getEstimateRates())): ?>
             }
         });
     }
+
+
+jQuery(document).ready(function(){
+    if($$('[name="estimate_method"]:checked').length == 0){
+        jQuery('[name="estimate_method"]').last().click();
+    } else {
+        selectedShippingMethod = $$('[name="estimate_method"]:checked')[0].value;
+    }
+});
 
     //]]>
 </script>

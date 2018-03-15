@@ -16,6 +16,7 @@ class Billmate_Common_Model_Checkout extends Varien_Object
         $billmate = $helper->getBillmate();
 
         $quote = Mage::getSingleton('checkout/session')->getQuote();
+        $quote->collectTotals();
 
         $Billing= $quote->getBillingAddress();
         $Shipping= $quote->getShippingAddress();

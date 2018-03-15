@@ -149,11 +149,6 @@ var BillmateIframe = new function(){
 };
 jQuery(document).ready(function(){
 
-    // Make sure a shipping option is selected on page load
-    if(jQuery('input[name="estimate_method"]:checked').length != 1){
-        jQuery('input[name="estimate_method"]:first').click();
-    }
-
     jQuery(document).ajaxStart(function(){
         jQuery('#checkoutdiv').addClass('loading');
         jQuery("#checkoutdiv.loading .billmateoverlay").height(jQuery("#checkoutdiv").height());
