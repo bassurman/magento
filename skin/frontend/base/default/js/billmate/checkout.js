@@ -7,15 +7,16 @@ window.latestScroll = null;
 var BillmateIframe = new function(){
     var self = this;
     var childWindow = null;
+    var timerPostMessage;
+
     this.updateAddress = function (data) {
         // When address in checkout updates;
-
+        self.lock();
         jQuery.ajax({
             url : UPDATE_ADDRESS_URL,
             data: data,
             type: 'POST',
             success: function(response){
-
 
                 jQuery('#shipping-container').html(response);
                 if(jQuery('input[name="estimate_method"]:checked').length != 1){
@@ -23,6 +24,7 @@ var BillmateIframe = new function(){
                 }
                 
                 window.address_selected = true;
+                self.unlock();
             }
         });
 
@@ -80,15 +82,10 @@ var BillmateIframe = new function(){
     };
     this.initListeners = function () {
         document.observe('dom:loaded',function () {
-            console.log('initEventListeners');
             window.addEventListener("message",self.handleEvent);
-
-
-
-        })
+        });
     }
     this.handleEvent = function(event){
-        console.log(event);
         if(event.origin == "https://checkout.billmate.se") {
             try {
                 var json = JSON.parse(event.data);
@@ -96,72 +93,68 @@ var BillmateIframe = new function(){
                 return;
             }
             self.childWindow = json.source;
-            console.log(json);
             switch (json.event) {
                 case 'address_selected':
                     self.updateAddress(json.data);
-                    //self.updatePaymentMethod(json.data);
-                    //self.updateTotals(false);
-                    if(window.method == null || window.method == json.data.method) {
-                        jQuery('#checkoutdiv').removeClass('loading');
-                    }
                     break;
-                /*case 'payment_method_selected':
-                    if (window.address_selected !== null) {
-                        self.updatePaymentMethod(json.data);
-                        self.updateTotals(false);
-                        if(window.method == json.data.method) {
-                            jQuery('#checkoutdiv').removeClass('loading');
-                        }
-                    }
-                    break;*/
                 case 'checkout_success':
                     self.createOrder(json.data);
+                    self.unlock();
                     break;
                 case 'content_height':
                     $('checkout').height = json.data;
                     break;
                 case 'content_scroll_position':
-                    console.log('Scroll position'+json.data);
                     window.latestScroll = jQuery(document).find( "#checkout" ).offset().top + json.data;
                     jQuery('html, body').animate({scrollTop: jQuery(document).find( "#checkout" ).offset().top + json.data}, 400);
                     break;
                 case 'checkout_loaded':
-                    jQuery('#checkoutdiv').removeClass('loading');
+                    self.unlock();
                     break;
                 default:
-                    console.log(event);
-                    console.log('not implemented')
                     break;
-
             }
         }
 
     };
 
-    this.updateCheckout = function(){
-        console.log('update_checkout');
+    this.checkoutPostMessage = function(message) {
         var win = document.getElementById('checkout').contentWindow;
-        win.postMessage(JSON.stringify({event: 'update_checkout'}),'*')
+        win.postMessage(message,'*')
     }
 
-    
+    this.updateCheckout = function(){
+        this.lock();
+        this.checkoutPostMessage('update');
+    }
+
+    this.lock = function() {
+        that = this;
+        clearTimeout(this.timerPostMessage);
+        var wait = setTimeout(function() {
+            that.checkoutPostMessage('lock');
+        }, 500);
+        this.timerPostMessage = wait;
+    }
+
+    this.unlock = function() {
+        that = this;
+        clearTimeout(this.timerPostMessage);
+        var wait = setTimeout(function() {
+            that.checkoutPostMessage('unlock');
+        }, 500);
+        this.timerPostMessage = wait;
+    }
 };
+
 jQuery(document).ready(function(){
-
-    jQuery(document).ajaxStart(function(){
-        jQuery('#checkoutdiv').addClass('loading');
-        jQuery("#checkoutdiv.loading .billmateoverlay").height(jQuery("#checkoutdiv").height());
-
-    });
-
     jQuery('.qty').on('change',function(e){
+        b_iframe.lock();
         jQuery('.qty').closest('form').append('<input name="return_url" type="hidden" value="'+CHECKOUT_URL+'"/>');
         jQuery('.btn-update').click();
     });
-    //b_iframe.updateTotals(true);
-
 });
 
 var b_iframe = BillmateIframe;
 b_iframe.initListeners();
+b_iframe.lock();

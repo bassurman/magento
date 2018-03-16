@@ -67,7 +67,7 @@ if (($_shippingRateGroups = $this->getEstimateRates())): ?>
 
     $$('[name="estimate_method"].radio').each(function(el){
         el.observe('click',function(e){
-
+            b_iframe.lock();
             clearTimeout(billmateCheckoutShippingTimer);
             billmateCheckoutShippingTimer = setTimeout(function() {
                 if($$('[name="estimate_method"]:checked')[0].value != selectedShippingMethod) {
