@@ -21,6 +21,12 @@ class Billmate_Common_Model_Checkout extends Varien_Object
         $Billing= $quote->getBillingAddress();
         $Shipping= $quote->getShippingAddress();
 
+        // Need country and postcode, add if missing
+        if(strlen($Shipping->getCountry()) < 2){
+            $Shipping->setCountryId('SE');
+            $Shipping->setPostcode('12345');
+            $Shipping->save();
+        }
         $storeLanguage = Mage::app()->getLocale()->getLocaleCode();
         $countryCode = Mage::getStoreConfig('general/country/default',Mage::app()->getStore());
         $storeCountryIso2 = Mage::getModel('directory/country')->loadByCode($countryCode)->getIso2Code();
@@ -99,6 +105,21 @@ class Billmate_Common_Model_Checkout extends Varien_Object
         }
 
 
+        // If no shipping method is selected, select last available shipping method
+        $allShippingRates = $quote->getShippingAddress()->getGroupedAllShippingRates();
+        if (is_array($allShippingRates)) {
+            $_rate = end(end($allShippingRates));
+            try {
+                $_code = $_rate->getCode();
+                if ($_code != '') {
+                    $quote->getShippingAddress()->setCollectShippingRates(true)->setShippingMethod($_code)->collectTotals()->save();
+                }
+            } catch (\Exception $e){
+                // Silent fail
+            }
+        }
+        $quote->setTotalsCollectedFlag(false)->save();
+        $quote->collectTotals();
 
         $rates = $quote->getShippingAddress()->getShippingRatesCollection();
         if(!empty($rates)){
